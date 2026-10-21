@@ -1,42 +1,73 @@
-sx <https://github.com/Earnestly/sx>
+sx - simple xinit replacement
+=============================
+sx is a simple alternative to both xinit(1) and startx(1) for starting
+an Xorg server.
 
-INTRODUCTION
-
-  sx is a simple alternative to both xinit(1) and startx(1) for starting
-  an Xorg server.
-
-  It started life as a proof of concept while attempting to learn how both
-  xinit and startx worked while taking up the offer presented in startx:
+It started life as a proof of concept while attempting to learn how both
+xinit and startx worked while taking up the offer presented in startx:
 
     > Site administrators are STRONGLY urged to write nicer versions.
 
-  It is not a direct replacement however as it provides a different, more
-  limited, interface.
+It is not a direct replacement as it provides a different, minimalist
+interface. This fork adds optional server command-line customization via an
+xsvrc file while preserving upstream behavior.
 
-  Some of these major differences are listed here:
+In this document, CONFIG refers to ${XDG_CONFIG_HOME:-$HOME/.config}/sx.
 
-    * The server's command-line is hard coded and not exposed to the user.
-    * The server doesn't listen on anything except unix domain sockets.
-    * The server starts on the same tty the user logged in on.
-    * The first DISPLAY is 1 instead of 0 contrary to what X(7) suggests
-      as it is coupled to the tty number.
-      server exits.
-    * The server uses the -noreset flag.
-    * Very little proxy error checking is used preferring instead to let
-      each tool speak for itself.
-    * None of the typical /etc/X11/xinit infrastructure is directly used.
-    * Neither XINITRC is honoured nor .xinitrc used.
-    * The XDG_CONFIG_HOME/sx/sxrc file is used instead of .xinitrc and is
-      required to be executable.
 
-  For a rationale on why this exists the author invites the reader to
-  look over the source code for both xinit and startx.
+Features
+--------
+* Configurable server command via CONFIG/xsvrc.
+* Server listens only on UNIX domain sockets by default.
+* Server starts on the same TTY the user logged in on.
+* First DISPLAY is 1 instead of 0, coupled directly to the TTY number.
+* Server uses -noreset by default.
+* Minimal error checking, letting individual tools handle their own output.
+* No dependence on /etc/X11/xinit infrastructure.
+* Ignores XINITRC and .xinitrc in favor of executable CONFIG/sxrc.
 
-REQUIRES
 
-  * Xorg
-  * /dev/urandom
+XSVRC
+-----
+If CONFIG/xsvrc exists, it is sourced instead of running the default command.
+If absent, sx runs:
 
-INSTALL
+    exec Xorg :"$tty" vt"$tty" -keeptty -noreset -nolisten tcp
 
-  make PREFIX=/usr install
+The file is sourced by sh (no shebang or executable bit needed). $tty is
+available and must be used for display and vt arguments.
+
+Example CONFIG/xsvrc:
+
+    exec Xorg :"$tty" vt"$tty" -keeptty -noreset -nolisten tcp \
+        -background none -quiet -logverbose 0 -verbose 0
+
+Rules:
+* Command must begin with `exec`, otherwise $server PID will point to the
+  wrapping subshell instead of Xorg, breaking cleanup (`kill "$server"`).
+* `-keeptty` is required; `-noreset` is strongly recommended.
+* Do not add trailing `)` or `&`.
+* Note that `-extension NAME` disables an extension; `+extension NAME`
+  enables it. Disabling XTEST breaks tools such as xdotool.
+
+
+Requirements
+------------
+* Xorg
+
+
+Installation
+------------
+PREFIX defaults to /usr/local; override it on the command line if needed.
+
+Run the following command to install sx:
+
+    make PREFIX=/usr install
+
+
+Credits & License
+-----------------
+Based on and forked from sx by Earnestly:
+https://github.com/Earnestly/sx
+
+See LICENSE file for copyright and license details.
