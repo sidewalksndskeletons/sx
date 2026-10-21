@@ -16,6 +16,7 @@ tty=${tty#/dev/tty}
 
 cfgdir=${XDG_CONFIG_HOME:-$HOME/.config}/sx
 mkdir -p -- "$cfgdir"
+xsvrc=$cfgdir/xsvrc
 
 trap 'cleanup; exit "${xorg:-0}"' EXIT
 
@@ -30,7 +31,11 @@ trap '
 ' USR1
 
 (trap '' USR1
- exec Xorg :"$tty" vt"$tty" -keeptty -noreset -nolisten tcp) &
+ if [ -f "$xsvrc" ]; then
+     . "$xsvrc"
+ else
+     exec Xorg :"$tty" vt"$tty" -keeptty -noreset -nolisten tcp
+ fi) &
 server=$!
 
 wait "$server"
